@@ -3,7 +3,7 @@ from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 from PyQt5.QtMultimediaWidgets import QVideoWidget
 from PyQt5 import QtCore, Qt, QtGui
 from PyQt5.QtCore import QRect, QSize, Qt, QUrl, QDir, QTime, pyqtSlot
-from PyQt5.QtGui import QFont, QPixmap, QImage, QColor, QPainter, QPen, QKeySequence, QStandardItemModel
+from PyQt5.QtGui import QFont, QPixmap, QImage, QColor, QPainter, QPen, QKeySequence, QStandardItemModel,QScreen
 import os
 import csv
 import sys
@@ -33,10 +33,20 @@ class Window(QMainWindow):
 
         self.UiComponents()
 
+        self.setFixedSize(1920,1080)
+
         self.show()
-
+    def mouseMoveEvent(self, e):
+        x = e.x()
+        y = e.y()
+        x = int(x*2560/1360)
+        y = int((y-136)*1440/759)
+        self.x_value = x
+        self.y_value = y
+        text = "x: {0},  y: {1}".format(x, y)
+        print(text)
+        # self.label.setText(text)
     def UiComponents(self):
-
         self.rowNo = 1
         self.colNo = 0
         self.fName = ""
@@ -52,7 +62,6 @@ class Window(QMainWindow):
 
         self.videoWidget = QVideoWidget()
         self.frameID=0
-
 
         self.insertBaseRow()
 
@@ -90,25 +99,17 @@ class Window(QMainWindow):
         # self.ctr = QLineEdit()
         # self.ctr.setPlaceholderText("Extra")
 
-        self.startTime = QLineEdit()
-        self.startTime.setPlaceholderText("Select Start Time")
+        self.startx = QLineEdit()
+        self.startx.setPlaceholderText("Start X")
 
-        self.endTime = QLineEdit()
-        self.endTime.setPlaceholderText("Select End Time")
+        self.starty = QLineEdit()
+        self.starty.setPlaceholderText("Start Y")
 
-        self.iLabel = QComboBox(self)
-        self.iLabel.addItem("1. Eye Contact")
-        self.iLabel.addItem("2. Pointing")
-        self.iLabel.addItem("3. Response to Names")
-        self.iLabel.addItem("4. Following Pointing")
-        self.iLabel.addItem("5. Babbling")
-        self.iLabel.addItem("6. Question-Answering")
-        self.iLabel.addItem("7. Showing")
-        self.iLabel.addItem("8. Following Instructions")
-        self.iLabel.activated[str].connect(self.style_choice)
+        self.endx = QLineEdit()
+        self.endx.setPlaceholderText("End X")
 
-        # self.iLabel = QLineEdit()
-        # self.iLabel.setPlaceholderText("Label")
+        self.endy = QLineEdit()
+        self.endy.setPlaceholderText("End Y")
 
         self.positionSlider = QSlider(Qt.Horizontal)
         self.positionSlider.setRange(0, 100)
@@ -150,9 +151,10 @@ class Window(QMainWindow):
 
         # Right Layout {
         inputFields = QHBoxLayout()
-        inputFields.addWidget(self.startTime)
-        inputFields.addWidget(self.endTime)
-        inputFields.addWidget(self.iLabel)
+        inputFields.addWidget(self.startx)
+        inputFields.addWidget(self.starty)
+        inputFields.addWidget(self.endx)
+        inputFields.addWidget(self.endy)
         # inputFields.addWidget(self.ctr)
 
         feats = QHBoxLayout()
@@ -173,14 +175,16 @@ class Window(QMainWindow):
         # self.setLayout(layout)
         wid.setLayout(plotBox)
 
-        self.shortcut = QShortcut(QKeySequence("["), self)
-        self.shortcut.activated.connect(self.addStartTime)
-        self.shortcut = QShortcut(QKeySequence("]"), self)
-        self.shortcut.activated.connect(self.addEndTime)
-        self.shortcut = QShortcut(QKeySequence("L"), self)
-        self.shortcut.activated.connect(self.openFile)
-        self.shortcut = QShortcut(QKeySequence("C"), self)
-        self.shortcut.activated.connect(self.clearTable)
+        self.shortcut = QShortcut(QKeySequence("S"), self)
+        self.shortcut.activated.connect(self.setStartText)
+        self.shortcut = QShortcut(QKeySequence("E"), self)
+        self.shortcut.activated.connect(self.setEndText)
+        self.shortcut = QShortcut(QKeySequence("F"), self)
+        self.shortcut.activated.connect(self.next)
+        self.shortcut = QShortcut(QKeySequence("D"), self)
+        self.shortcut.activated.connect(self.delete)
+        self.shortcut = QShortcut(QKeySequence("Space"), self)
+        self.shortcut.activated.connect(self.play)
 
         self.shortcut = QShortcut(QKeySequence(Qt.Key_Right), self)
         self.shortcut.activated.connect(self.forwardSlider)
@@ -202,6 +206,9 @@ class Window(QMainWindow):
         self.mediaPlayer.durationChanged.connect(self.durationChanged)
         self.mediaPlayer.error.connect(self.handleError)
 
+        self.videoWidget.setMouseTracking(True)
+        self.videoWidget.setAspectRatioMode(Qt.KeepAspectRatio)
+
     def openFile(self):
         fileName, _ = QFileDialog.getOpenFileName(self, "Open Movie",
                 QDir.homePath())
@@ -217,6 +224,7 @@ class Window(QMainWindow):
 
     def play(self):
         # self.is_playing_video = not self.is_playing_video
+        self.is_playing_video = self.mediaPlayer.state()
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.mediaPlayer.pause()
         else:
@@ -234,25 +242,37 @@ class Window(QMainWindow):
             else:
                 self.target_frame_idx = frame_idx
 
+    def getCurrentFrame(self):
+        if self.mediaPlayer.state():
+            return self.mediaPlayer.position()
+        else:
+            return 0;
+
+
     def style_choice(self, text):
         self.dropDownName = text
         QApplication.setStyle(QStyleFactory.create(text))
 
 
-    def addStartTime(self):
-        self.startTime.setText(self.lbl.text())
+    def setStartText(self):
+        self.startx.setText(str(self.x_value))
+        self.starty.setText(str(self.y_value))
 
-    def addEndTime(self):
-        self.endTime.setText(self.lbl.text())
+    def setEndText(self):
+        self.endx.setText(str(self.x_value))
+        self.endy.setText(str(self.y_value))
+
 
     def next(self):
-        self.tableWidget.setItem(self.rowNo, self.colNo, QTableWidgetItem(self.startTime.text()))
+        self.tableWidget.setItem(self.rowNo, self.colNo, QTableWidgetItem(str(self.getCurrentFrame())))
         self.colNo += 1
-        self.tableWidget.setItem(self.rowNo, self.colNo, QTableWidgetItem(self.endTime.text()))
+        self.tableWidget.setItem(self.rowNo, self.colNo, QTableWidgetItem(self.startx.text()))
         self.colNo += 1
-        self.tableWidget.setItem(self.rowNo, self.colNo, QTableWidgetItem(str(self.iLabel.currentIndex()+1)))
+        self.tableWidget.setItem(self.rowNo, self.colNo, QTableWidgetItem(self.starty.text()))
         self.colNo += 1
-        self.tableWidget.setItem(self.rowNo, self.colNo, QTableWidgetItem(self.iLabel.currentText().split(' ', 1)[1]))
+        self.tableWidget.setItem(self.rowNo, self.colNo, QTableWidgetItem(self.endx.text()))
+        self.colNo += 1
+        self.tableWidget.setItem(self.rowNo, self.colNo, QTableWidgetItem(self.endy.text()))
         self.colNo = 0
         self.rowNo += 1
         # print(self.ctr.text(), self.startTime.text(), self.iLabel.text(), self.rowNo, self.colNo)
@@ -316,7 +336,7 @@ class Window(QMainWindow):
                     if i == 0:
                         continue
                     else:
-                        if(len(row) == 4):
+                        if(len(row) == 5):
                             st, et, li, ln = row
                             self.tableWidget.setItem(self.rowNo, self.colNo, QTableWidgetItem(st))
                             self.colNo += 1
@@ -329,14 +349,15 @@ class Window(QMainWindow):
                             self.colNo = 0
 
     def insertBaseRow(self):
-        self.tableWidget.setColumnCount(4) #, Start Time, End Time, TimeStamp
+        self.tableWidget.setColumnCount(5) #, Start frame, startX, startY, endX, endY
         self.tableWidget.setRowCount(50)
         self.rowNo = 1
         self.colNo = 0
-        self.tableWidget.setItem(0, 0, QTableWidgetItem("Start Time"))
-        self.tableWidget.setItem(0, 1, QTableWidgetItem("End Time"))
-        self.tableWidget.setItem(0, 2, QTableWidgetItem("Label Index"))
-        self.tableWidget.setItem(0, 3, QTableWidgetItem("Label Name"))
+        self.tableWidget.setItem(0, 0, QTableWidgetItem("Start time"))
+        self.tableWidget.setItem(0, 1, QTableWidgetItem("startX"))
+        self.tableWidget.setItem(0, 2, QTableWidgetItem("startY"))
+        self.tableWidget.setItem(0, 3, QTableWidgetItem("endX"))
+        self.tableWidget.setItem(0, 4, QTableWidgetItem("endY"))
 
     def checkTableFrame(self, row, column):
         if ((row > 0) and (column < 2)):
