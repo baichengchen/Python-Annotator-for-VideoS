@@ -29,11 +29,8 @@ Refer help.txt before proceeding with the usage of the application.
 ```
 
 ## Shortcuts
-- Load video: L
-- Previous frame: Left Arrow
-- Next frame: Right Arrow
-- Add Start Time: [
-- Add End Time: ]
-- Frame after next 10 frames: Shift + Left Arrow
-- Frame before prev 10 frames: Shift + Right Arrow
-- Clear entire table: C
+- S: update start bounding box (left top corner pixel)
+- E: update end bounding box (right bottom corner pixel)
+- D: delete rows selected
+- F:add current data to table
+- Space: play/pause video
