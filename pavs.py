@@ -322,10 +322,10 @@ class Window(QMainWindow):
             # self.fName2 = ((self.fileNameExist.rsplit('/', 1)[1]).rsplit('.',1))[0]
             # path, _ = QFileDialog.getSaveFileName(self, 'Save File', QDir.homePath() + "/"+self.fName2+".csv", "CSV Files(*.csv *.txt)")
         # else:
-        self.clearTable()
         path, _ = QFileDialog.getOpenFileName(self, 'Save File', QDir.homePath() , "CSV Files(*.csv *.txt)")
         print(path)
         if path:
+            self.clearTable()
             with open(path, 'r') as stream:
                 print("loading", path)
                 reader = csv.reader(stream)
